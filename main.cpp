@@ -114,9 +114,9 @@ struct Vector3 {
 
     Vector3 normal_to_color() {
         return Vector3(
-            (int)(x * 255),
-            (int)(y * 255),
-            (int)(z * 255)
+            (int)((x + 1)/2 * 255),
+            (int)((y + 1)/2 * 255),
+            (int)((z + 1)/2 * 255)
         );
     }
 
@@ -313,7 +313,7 @@ struct Image {
     }
     void ViewZBuffer() {
         std::ofstream imgFile("zbuffer.ppm");
-        imgFile << "P2\n" << width << " " << height << "\n1000\n";
+        imgFile << "P2\n" << width << " " << height << "\n100\n";
 
         for ( int y = height-1; y >= 0; y-- ) {
             for ( int x = 0; x < width; x++ ) {
@@ -422,6 +422,30 @@ Triangle cube[12] = {
     ),
 };
 
+Triangle cross[4] = { // Two planes intersecting each other
+    Triangle(
+        Vector3(0, -1, 1),
+        Vector3(0, -1, -1),
+        Vector3(0, 1, -1)
+    ),
+    Triangle(
+        Vector3(0, -1, 1),
+        Vector3(0, 1, 1),
+        Vector3(0, 1, -1)
+    ),
+
+    Triangle(
+        Vector3(-1, -1, 0),
+        Vector3(1, -1, 0),
+        Vector3(1, 1, 0)
+    ),
+    Triangle(
+        Vector3(-1, -1, 0),
+        Vector3(-1, 1, 0),
+        Vector3(1, 1, 0)
+    )
+};
+
 int main() {
     Image img;
     Camera camera;
@@ -437,8 +461,16 @@ int main() {
         cube[i] = cube[i] * Vector3(32, 32, 32);
         cube[i] = cube[i] + Vector3(60, -60, 100);
 
+
         triangleDisplayBuffer[i] = camera.TriToImagePlane(cube[i]);
-        
+    }
+    for ( int i = 0; i < 4; i++ ) {
+        // Quick transform cross to world space
+        cross[i] = cross[i] * Vector3(32, 32, 32);
+        cross[i] = cross[i] + Vector3(-60, -60, 100);
+
+
+        triangleDisplayBuffer[i + 12] = camera.TriToImagePlane(cross[i]);
     }
 
     for ( int i = 0; i < maxTriangles; i++ ) {
