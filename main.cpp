@@ -1,13 +1,13 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <vector>
 
 
 static const int
     img_width = 256,
     img_height = 256,
-    clipFar = 1000,
-    maxTriangles = 100;
+    clipFar = 1000;
 
 float min(float a, float b) {
     if (a < b) {
@@ -114,9 +114,12 @@ struct Vector3 {
 
     Vector3 normal_to_color() {
         return Vector3(
-            (int)((x + 1)/2 * 255),
-            (int)((y + 1)/2 * 255),
-            (int)((z + 1)/2 * 255)
+            (int)(x * 255),
+            (int)(y * 255),
+            (int)(z * 255)
+            // (int)((x + 1)/2 * 255),
+            // (int)((y + 1)/2 * 255),
+            // (int)((z + 1)/2 * 255)
         );
     }
 
@@ -355,13 +358,36 @@ struct Camera {
     
 };
 
+struct Object {
+    std::vector<Triangle> triangles;
+
+    Object(std::vector<Triangle> Triangles) {
+        triangles = Triangles;
+    }
+    void toWorldSpace(Vector3 pos, Vector3 scale) {
+        for (int i = 0; i < triangles.size(); i++) {
+            // Quick transform cross to world space
+            triangles[i] = triangles[i] * pos;
+            triangles[i] = triangles[i] + scale;
+        }
+    }
+
+    void toDisplayBuffer(std::vector<Triangle> &triangleDisplayBuffer, Camera &camera) {
+        for (int i = 0; i < triangles.size(); i++) {
+            triangleDisplayBuffer.push_back(
+                camera.TriToImagePlane(triangles[i])
+            );
+        }
+    }
+};
 
 
-Triangle cube[12] = {
+
+Object cube = Object({
     Triangle( // Back face
-        Vector3(1, -1, 1),
+        Vector3(-1, 1, 1),
         Vector3(-1, -1, 1),
-        Vector3(-1, 1, 1)
+        Vector3(1, -1, 1)
     ),
     Triangle(
         Vector3(1, -1, 1),
@@ -374,9 +400,9 @@ Triangle cube[12] = {
         Vector3(-1, 1, -1)
     ),
     Triangle(
-        Vector3(1, -1, -1),
+        Vector3(-1, 1, -1),
         Vector3(1, 1, -1),
-        Vector3(-1, 1, -1)
+        Vector3(1, -1, -1)
     ),
 
     Triangle( // Right face
@@ -385,9 +411,9 @@ Triangle cube[12] = {
         Vector3(1, 1, -1)
     ),
     Triangle(
-        Vector3(1, -1, 1),
+        Vector3(1, 1, -1),
         Vector3(1, 1, 1),
-        Vector3(1, 1, -1)
+        Vector3(1, -1, 1)
     ),
     Triangle( // Left face
         Vector3(-1, -1, 1),
@@ -395,9 +421,9 @@ Triangle cube[12] = {
         Vector3(-1, 1, -1)
     ),
     Triangle(
-        Vector3(-1, -1, 1),
+        Vector3(-1, 1, -1),
         Vector3(-1, 1, 1),
-        Vector3(-1, 1, -1)
+        Vector3(-1, -1, 1)
     ),
 
     Triangle( // Bottom face
@@ -406,9 +432,9 @@ Triangle cube[12] = {
         Vector3(-1, -1, -1)
     ),
     Triangle(
-        Vector3(1, -1, 1),
+        Vector3(-1, -1, -1),
         Vector3(1, -1, -1),
-        Vector3(-1, -1, -1)
+        Vector3(1, -1, 1)
     ),
     Triangle( // Top face
         Vector3(1, 1, 1),
@@ -416,22 +442,22 @@ Triangle cube[12] = {
         Vector3(-1, 1, -1)
     ),
     Triangle(
-        Vector3(1, 1, 1),
+        Vector3(-1, 1, -1),
         Vector3(1, 1, -1),
-        Vector3(-1, 1, -1)
+        Vector3(1, 1, 1)
     ),
-};
+});
 
-Triangle cross[4] = { // Two planes intersecting each other
+Object cross = Object({ // Two planes intersecting each other
     Triangle(
         Vector3(0, -1, 1),
         Vector3(0, -1, -1),
         Vector3(0, 1, -1)
     ),
     Triangle(
-        Vector3(0, -1, 1),
+        Vector3(0, 1, -1),
         Vector3(0, 1, 1),
-        Vector3(0, 1, -1)
+        Vector3(0, -1, 1)
     ),
 
     Triangle(
@@ -440,11 +466,11 @@ Triangle cross[4] = { // Two planes intersecting each other
         Vector3(1, 1, 0)
     ),
     Triangle(
-        Vector3(-1, -1, 0),
+        Vector3(1, 1, 0),
         Vector3(-1, 1, 0),
-        Vector3(1, 1, 0)
+        Vector3(-1, -1, 0)
     )
-};
+});
 
 int main() {
     Image img;
@@ -452,28 +478,16 @@ int main() {
 
     img.Initialize(clipFar);
 
-    
-
-    Triangle triangleDisplayBuffer[maxTriangles] = {}; // Triangles on the display surface also storing z-depth.
-
-    for ( int i = 0; i < 12; i++ ) {
-        // Quick transform cube to world space
-        cube[i] = cube[i] * Vector3(32, 32, 32);
-        cube[i] = cube[i] + Vector3(60, -60, 100);
+    std::vector<Triangle> triangleDisplayBuffer; // Triangles on the display surface also storing z-depth.
 
 
-        triangleDisplayBuffer[i] = camera.TriToImagePlane(cube[i]);
-    }
-    for ( int i = 0; i < 4; i++ ) {
-        // Quick transform cross to world space
-        cross[i] = cross[i] * Vector3(32, 32, 32);
-        cross[i] = cross[i] + Vector3(-60, -60, 100);
+    cross.toWorldSpace(Vector3(32, 32, 32), Vector3(-60, 60, 100));
+    cross.toDisplayBuffer(triangleDisplayBuffer, camera);
 
+    cube.toWorldSpace(Vector3(32, 32, 32), Vector3(60, -60, 100));
+    cube.toDisplayBuffer(triangleDisplayBuffer, camera);
 
-        triangleDisplayBuffer[i + 12] = camera.TriToImagePlane(cross[i]);
-    }
-
-    for ( int i = 0; i < maxTriangles; i++ ) {
+    for ( int i = 0; i < triangleDisplayBuffer.size(); i++ ) {
         img.RasterizeTriangle(triangleDisplayBuffer[i], Vector3(255, 0, 255));
     }
 
