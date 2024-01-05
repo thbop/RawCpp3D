@@ -1,0 +1,3 @@
+add dot
+
+calculate lambertian diffuse + ambient for shading
