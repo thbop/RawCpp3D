@@ -114,12 +114,12 @@ struct Vector3 {
 
     Vector3 normal_to_color() {
         return Vector3(
-            (int)(x * 255),
-            (int)(y * 255),
-            (int)(z * 255)
-            // (int)((x + 1)/2 * 255),
-            // (int)((y + 1)/2 * 255),
-            // (int)((z + 1)/2 * 255)
+            // (int)(x * 255),
+            // (int)(y * 255),
+            // (int)(z * 255)
+            (int)((x + 1)/2 * 255),
+            (int)((y + 1)/2 * 255),
+            (int)((z + 1)/2 * 255)
         );
     }
 
@@ -127,7 +127,9 @@ struct Vector3 {
         return Vector2(x, y);
     }
 
-    // Add dot
+    float dot( Vector3 other ) {
+        return x * other.x + y * other.y + z * other.z;
+    }
 
     Vector3 cross( Vector3 other ) {
         return Vector3(
@@ -187,7 +189,7 @@ struct LinearPlane3D {
     }
 };
 
-struct Image {
+struct Renderer {
     static const int width = 256, height = 256;
     Vector2 shift = Vector2( width / 2, height / 2 );
 
@@ -229,7 +231,7 @@ struct Image {
 
     void DrawSpan(const Span2D &span, int y, Vector3 color, LinearPlane3D plane ) {
         for (int x = span.x1; x < span.x2; x++) {
-            Set3DPixel(Vector3(x, y, plane.z(x, y)), plane.normal.normal_to_color());
+            Set3DPixel(Vector3(x, y, plane.z(x, y)), color); // for normals plane.normal.normal_to_color()
         }
     }
 
@@ -267,7 +269,7 @@ struct Image {
         
     }
 
-    void RasterizeTriangle(Triangle t, Vector3 color) {
+    void RasterizeTriangle(Triangle t) {
         // Based on: https://joshbeam.com/articles/triangle_rasterization/
         // Form edges
         Edge2D edges[3] = {
@@ -293,6 +295,14 @@ struct Image {
 
         // Init plane for zBuffer stuff
         LinearPlane3D plane = LinearPlane3D(t);
+
+        Vector3 light = Vector3(0, 60, -100);
+        float light_intensity = 200;
+        
+        Vector3 light_dir = (light - t.a).normalize(); // Not totally accurate
+
+        float v = max(plane.normal.dot(light_dir), 0) * light_intensity + 55;
+        Vector3 color = Vector3(v, v, v);
 
         DrawSpansBetweenEdges(edges[longEdge], edges[shortEdge1], color, plane);
         DrawSpansBetweenEdges(edges[longEdge], edges[shortEdge2], color, plane);
@@ -417,12 +427,12 @@ Object cube = Object({
     ),
     Triangle( // Left face
         Vector3(-1, -1, 1),
-        Vector3(-1, -1, -1),
+        Vector3(-1, 1, 1),
         Vector3(-1, 1, -1)
     ),
     Triangle(
         Vector3(-1, 1, -1),
-        Vector3(-1, 1, 1),
+        Vector3(-1, -1, -1),
         Vector3(-1, -1, 1)
     ),
 
@@ -438,12 +448,12 @@ Object cube = Object({
     ),
     Triangle( // Top face
         Vector3(1, 1, 1),
-        Vector3(-1, 1, 1),
+        Vector3(1, 1, -1),
         Vector3(-1, 1, -1)
     ),
     Triangle(
         Vector3(-1, 1, -1),
-        Vector3(1, 1, -1),
+        Vector3(-1, 1, 1),
         Vector3(1, 1, 1)
     ),
 });
@@ -462,21 +472,21 @@ Object cross = Object({ // Two planes intersecting each other
 
     Triangle(
         Vector3(-1, -1, 0),
-        Vector3(1, -1, 0),
+        Vector3(-1, 1, 0),
         Vector3(1, 1, 0)
     ),
     Triangle(
         Vector3(1, 1, 0),
-        Vector3(-1, 1, 0),
+        Vector3(1, -1, 0),
         Vector3(-1, -1, 0)
     )
 });
 
 int main() {
-    Image img;
+    Renderer renderer;
     Camera camera;
 
-    img.Initialize(clipFar);
+    renderer.Initialize(clipFar);
 
     std::vector<Triangle> triangleDisplayBuffer; // Triangles on the display surface also storing z-depth.
 
@@ -488,13 +498,13 @@ int main() {
     cube.toDisplayBuffer(triangleDisplayBuffer, camera);
 
     for ( int i = 0; i < triangleDisplayBuffer.size(); i++ ) {
-        img.RasterizeTriangle(triangleDisplayBuffer[i], Vector3(255, 0, 255));
+        renderer.RasterizeTriangle(triangleDisplayBuffer[i]);
     }
 
 
 
-    img.Save();
-    img.ViewZBuffer();
+    renderer.Save();
+    renderer.ViewZBuffer();
 
     std::cout << "Success! Image updated.\n";
 
