@@ -4,7 +4,6 @@ A custom 3D renderer using only raw C++
 Renders:
 
 ![render0](https://github.com/thbop/RawCpp3D/blob/main/showcase/render1.png)
-
 ![normals0](https://github.com/thbop/RawCpp3D/blob/main/showcase/normals0.png)
 
 The original inspiration for this project: [How do Video Game Graphics Work by Branch Education](https://www.youtube.com/watch?v=C8YtdC8mxTU&t=819s).
