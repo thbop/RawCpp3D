@@ -4,6 +4,7 @@
 #include <vector>
 
 
+
 static const int
     img_width = 256,
     img_height = 256,
@@ -148,6 +149,9 @@ struct Vector3 {
     Vector3 operator*( Vector3 other ) {
         return Vector3( x * other.x, y * other.y, z * other.z );
     }
+    Vector3 operator*( float other ) {
+        return Vector3( x * other, y * other, z * other );
+    }
     Vector3 operator/( Vector3 other ) {
         return Vector3( x / other.x, y / other.y, z / other.z );
     }
@@ -156,23 +160,24 @@ struct Vector3 {
 
 
 struct Triangle {
-    Vector3 a, b, c;
+    Vector3 a, b, c, color;
     Triangle() {
         a = Vector3();
         b = Vector3();
         c = Vector3();
     }
-    Triangle(Vector3 A, Vector3 B, Vector3 C) {
+    Triangle(Vector3 A, Vector3 B, Vector3 C, Vector3 COLOR) {
         a = A;
         b = B;
         c = C;
+        color = COLOR;
     }
 
     Triangle operator+( Vector3 other ) {
-        return Triangle( a + other, b + other, c + other );
+        return Triangle( a + other, b + other, c + other, color );
     }
     Triangle operator*( Vector3 other ) {
-        return Triangle( a * other, b * other, c * other );
+        return Triangle( a * other, b * other, c * other, color );
     }
 
 };
@@ -197,9 +202,13 @@ struct Renderer {
 
     int zBuffer[height][width] = {};
 
-    void Initialize(const int clipFar) {
+    void Initialize(Vector3 bg_color, const int clipFar) {
         for (int y = 0; y < img_height; y++) {
             for (int x = 0; x < img_width; x++) {
+                pixels[y][x][0] = bg_color.x;
+                pixels[y][x][1] = bg_color.y;
+                pixels[y][x][2] = bg_color.z;
+
                 zBuffer[y][x] = clipFar;
             }
         }
@@ -302,10 +311,10 @@ struct Renderer {
         Vector3 light_dir = (light - t.a).normalize(); // Not totally accurate
 
         float v = max(plane.normal.dot(light_dir), 0) * light_intensity + 55;
-        Vector3 color = Vector3(v, v, v);
+        Vector3 render_color = (t.color * (max(plane.normal.dot(light_dir), 0) * light_intensity)) + t.color * 55; 
 
-        DrawSpansBetweenEdges(edges[longEdge], edges[shortEdge1], color, plane);
-        DrawSpansBetweenEdges(edges[longEdge], edges[shortEdge2], color, plane);
+        DrawSpansBetweenEdges(edges[longEdge], edges[shortEdge1], render_color, plane);
+        DrawSpansBetweenEdges(edges[longEdge], edges[shortEdge2], render_color, plane);
     }
 
 
@@ -362,7 +371,8 @@ struct Camera {
         return Triangle(
             toImagePlane(d.a),
             toImagePlane(d.b),
-            toImagePlane(d.c)
+            toImagePlane(d.c),
+            d.color
         );
     }
     
@@ -392,93 +402,111 @@ struct Object {
 };
 
 
-
+Vector3 cube_color = Vector3(0.905, 0.188, 0.467);
 Object cube = Object({
     Triangle( // Back face
         Vector3(-1, 1, 1),
         Vector3(-1, -1, 1),
-        Vector3(1, -1, 1)
+        Vector3(1, -1, 1),
+        cube_color
     ),
     Triangle(
         Vector3(1, -1, 1),
         Vector3(1, 1, 1),
-        Vector3(-1, 1, 1)
+        Vector3(-1, 1, 1),
+        cube_color
     ),
     Triangle( // Front face
         Vector3(1, -1, -1),
         Vector3(-1, -1, -1),
-        Vector3(-1, 1, -1)
+        Vector3(-1, 1, -1),
+        cube_color
     ),
     Triangle(
         Vector3(-1, 1, -1),
         Vector3(1, 1, -1),
-        Vector3(1, -1, -1)
+        Vector3(1, -1, -1),
+        cube_color
     ),
 
     Triangle( // Right face
         Vector3(1, -1, 1),
         Vector3(1, -1, -1),
-        Vector3(1, 1, -1)
+        Vector3(1, 1, -1),
+        cube_color
     ),
     Triangle(
         Vector3(1, 1, -1),
         Vector3(1, 1, 1),
-        Vector3(1, -1, 1)
+        Vector3(1, -1, 1),
+        cube_color
     ),
     Triangle( // Left face
         Vector3(-1, -1, 1),
         Vector3(-1, 1, 1),
-        Vector3(-1, 1, -1)
+        Vector3(-1, 1, -1),
+        cube_color
     ),
     Triangle(
         Vector3(-1, 1, -1),
         Vector3(-1, -1, -1),
-        Vector3(-1, -1, 1)
+        Vector3(-1, -1, 1),
+        cube_color
     ),
 
     Triangle( // Bottom face
         Vector3(1, -1, 1),
         Vector3(-1, -1, 1),
-        Vector3(-1, -1, -1)
+        Vector3(-1, -1, -1),
+        cube_color
     ),
     Triangle(
         Vector3(-1, -1, -1),
         Vector3(1, -1, -1),
-        Vector3(1, -1, 1)
+        Vector3(1, -1, 1),
+        cube_color
     ),
     Triangle( // Top face
         Vector3(1, 1, 1),
         Vector3(1, 1, -1),
-        Vector3(-1, 1, -1)
+        Vector3(-1, 1, -1),
+        cube_color
     ),
     Triangle(
         Vector3(-1, 1, -1),
         Vector3(-1, 1, 1),
-        Vector3(1, 1, 1)
+        Vector3(1, 1, 1),
+        cube_color
     ),
 });
 
+
+Vector3 cross_color = Vector3(0.821, 0.357, 0.16);
 Object cross = Object({ // Two planes intersecting each other
     Triangle(
         Vector3(0, -1, 1),
         Vector3(0, -1, -1),
-        Vector3(0, 1, -1)
+        Vector3(0, 1, -1),
+        cross_color
     ),
     Triangle(
         Vector3(0, 1, -1),
         Vector3(0, 1, 1),
-        Vector3(0, -1, 1)
+        Vector3(0, -1, 1),
+        cross_color
     ),
 
     Triangle(
         Vector3(-1, -1, 0),
         Vector3(-1, 1, 0),
-        Vector3(1, 1, 0)
+        Vector3(1, 1, 0),
+        cross_color
     ),
     Triangle(
         Vector3(1, 1, 0),
         Vector3(1, -1, 0),
-        Vector3(-1, -1, 0)
+        Vector3(-1, -1, 0),
+        cross_color
     )
 });
 
@@ -486,9 +514,10 @@ int main() {
     Renderer renderer;
     Camera camera;
 
-    renderer.Initialize(clipFar);
+    renderer.Initialize(Vector3(47, 172, 227), clipFar);
 
     std::vector<Triangle> triangleDisplayBuffer; // Triangles on the display surface also storing z-depth.
+
 
 
     cross.toWorldSpace(Vector3(32, 32, 32), Vector3(-60, 60, 100));

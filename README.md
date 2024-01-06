@@ -3,7 +3,7 @@ A custom 3D renderer using only raw C++
 
 Early renders:
 
-![render0](https://github.com/thbop/RawCpp3D/blob/main/showcase/render0.png)
+![render0](https://github.com/thbop/RawCpp3D/blob/main/showcase/render1.png)
 
 ![normals0](https://github.com/thbop/RawCpp3D/blob/main/showcase/normals0.png)
 

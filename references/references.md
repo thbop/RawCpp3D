@@ -13,3 +13,6 @@ LinearPlane3D math:
     [Demos project](https://www.desmos.com/3d/577a697eb9) and
     [formulas](https://www.youtube.com/watch?v=rL9UXzZYYo4).
     Also check [math.png](https://github.com/thbop/RawCpp3D/blob/main/references/math.png).
+
+.OBJ file reference:
+    [Wikipedia .OBJ](https://en.wikipedia.org/wiki/Wavefront_.obj_file)
